@@ -6,53 +6,51 @@
 <title>SkyOS</title>
 <style>
 :root{
-  --bg:#0f1720; --panel:#0b1220; --accent:#2563eb; --muted:#9aa4b2; --glass: rgba(255,255,255,0.06);
-  --win-radius:12px; --taskbar-height:56px; --font: 'Segoe UI', Roboto, system-ui, -apple-system;
+  --bg-top:#071025;
+  --bg-bottom:#0f1720;
+  --panel:#0b1220;
+  --accent:#2563eb;
+  --muted:#9aa4b2;
+  --glass: rgba(255,255,255,0.06);
+  --win-radius:12px;
+  --taskbar-height:56px;
+  --font:'Segoe UI', Roboto, system-ui, -apple-system;
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:var(--font);background:var(--bg);color:#e6eef6;overflow:hidden}
-#desktop{position:relative;width:100%;height:100%;background-size:cover;background-position:center;}
+html,body{height:100%;margin:0;font-family:var(--font);color:#e6eef6;overflow:hidden}
+#desktop{
+  position:relative;width:100%;height:100%;
+  background: linear-gradient(180deg,var(--bg-top) 0%, var(--bg-bottom) 100%);
+  background-size:cover;background-position:center;
+}
 
-/* default wallpaper: Windows-like image (external) */
-#desktop{background-image: url('https://images.unsplash.com/photo-1505483531331-3c2d3aa0f9f6?auto=format&fit=crop&w=1920&q=80');}
-
-/* make UI elements non-selectable by default (inputs/textarea still selectable) */
+/* non-selectable UI except inputs/textareas */
 body, .taskbar, .icon, .start-menu, .tile, .window, .win-header, .start-btn, .dock, .footer-note { user-select: none; -webkit-user-select:none; }
-input, textarea { user-select: text; -webkit-user-select: text; }
-
-/* prevent dragging images */
-img, .icon > div { -webkit-user-drag: none; pointer-events: none; }
+input, textarea { user-select: text; -webkit-user-select:text; }
+img, .icon > div { -webkit-user-drag:none; pointer-events:none; }
 
 /* layout */
+#icons { position:absolute; left:0; top:0; right:0; bottom:0; pointer-events:auto; }
 .icon{width:96px;text-align:center;color:var(--muted);cursor:default;position:absolute}
+.icon div{font-size:40px;line-height:40px}
 .icon span{display:block;margin-top:6px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.taskbar{position:absolute;left:0;right:0;bottom:0;height:var(--taskbar-height);display:flex;align-items:center;padding:6px 12px;gap:12px;background:rgba(0,0,0,0.35);backdrop-filter:blur(8px);}
+.taskbar{position:absolute;left:0;right:0;bottom:0;height:var(--taskbar-height);display:flex;align-items:center;padding:6px 12px;gap:12px;background:rgba(0,0,0,0.35);backdrop-filter:blur(8px);z-index:50}
 .task-left{display:flex;align-items:center;gap:10px}
-.start-btn{width:44px;height:44px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));display:flex;align-items:center;justify-content:center;cursor:pointer}
+.start-btn{min-width:44px;height:44px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0 10px;color:var(--muted);font-weight:600}
 .start-btn:active{transform:translateY(1px)}
 .search-box{min-width:320px;padding:8px 12px;border-radius:12px;background:var(--glass);display:flex;align-items:center;gap:8px}
 .search-box input{background:transparent;border:none;outline:none;color:var(--muted);width:100%}
 .task-right{margin-left:auto;display:flex;align-items:center;gap:10px}
 .clock{padding:6px 10px;border-radius:8px;background:transparent;color:var(--muted);font-size:13px}
-.start-menu{position:absolute;left:12px;bottom:70px;width:480px;background:rgba(0,0,0,0.45);border-radius:14px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,0.6);display:none}
-.start-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.tile{padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dock{display:flex;gap:8px}
+.start-menu{position:absolute;left:12px;bottom:70px;width:560px;background:rgba(0,0,0,0.45);border-radius:14px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,0.6);display:none;z-index:60}
+.start-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.tile{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .emoji{font-size:22px;margin-bottom:6px}
+.dock{display:flex;gap:8px;align-items:center}
 .window{
-  position:absolute;
-  width:760px;
-  height:480px;
-  /* UPDATED: Made window background solid */
-  background: var(--panel);
-  border-radius:12px;
-  box-shadow:0 20px 60px rgba(0,0,0,0.6);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  min-width:320px;
-  min-height:160px
+  position:absolute;width:760px;height:480px;background:var(--panel);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6);overflow:hidden;display:flex;flex-direction:column;min-width:320px;min-height:160px
 }
-.win-header{height:44px;display:flex;align-items:center;padding:8px 12px;gap:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);cursor:grab}
+.win-header{height:44px;display:flex;align-items:center;padding:8px 12px;gap:8px;background:#0f1a2a;cursor:grab;flex-shrink:0}
 .win-title{flex:1;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .win-controls{display:flex;gap:8px}
 .win-controls button{width:34px;height:30px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer}
@@ -67,17 +65,15 @@ img, .icon > div { -webkit-user-drag: none; pointer-events: none; }
 .terminal-input{display:flex;gap:8px;align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,0.02)}
 .terminal-input input{flex:1;background:transparent;border:none;padding:8px;color:#dfffdc;outline:none;font-family:monospace}
 
-/* others */
+/* Explorer/others */
 .explorer .file{padding:8px;border-radius:8px;background:rgba(255,255,255,0.01);margin-bottom:8px;display:flex;align-items:center;gap:10px}
 .settings .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.02)}
 .right-pane{width:320px;padding-left:12px}
 .split{display:flex;height:100%}
 .resizer{width:6px;cursor:col-resize;background:transparent}
-.toast{position:absolute;right:18px;bottom:80px;background:rgba(0,0,0,0.6);padding:10px;border-radius:8px}
-/* small helpers */
+.toast{position:absolute;right:18px;bottom:80px;background:rgba(0,0,0,0.6);padding:10px;border-radius:8px;z-index:70}
 .btn{padding:8px 10px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer}
 .footer-note{position:absolute;left:12px;bottom:calc(var(--taskbar-height) + 18px);color:var(--muted);font-size:12px}
-/* responsive text scaling to avoid overflow */
 .win-body *{max-width:100%;box-sizing:border-box}
 </style>
 </head>
@@ -101,9 +97,7 @@ img, .icon > div { -webkit-user-drag: none; pointer-events: none; }
 
   <div class="taskbar" role="toolbar" aria-label="Taskbar">
     <div class="task-left">
-      <div class="start-btn" id="startBtn" title="Start" aria-expanded="false">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
-      </div>
+      <div class="start-btn" id="startBtn" title="Sky" aria-expanded="false">Sky</div>
       <div class="search-box" title="Search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="6"/><path d="M21 21l-4.35-4.35"/></svg>
         <input id="searchInput" placeholder="Type here to search..." />
@@ -119,150 +113,188 @@ img, .icon > div { -webkit-user-drag: none; pointer-events: none; }
 </div>
 
 <script>
-/* ------------------ state ------------------ */
-/* UPDATED: Renamed state key for new project */
+/* ---------------- state ---------------- */
 const STATE_KEY = 'skyos_state_v1';
 let state = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
-/* UPDATED: Renamed welcome text */
-if(!state.files) state.files = { 'welcome.txt': 'Welcome to SkyOS!\\nUse Terminal: help, ls, cat, date, time.' };
-if(!state.apps) state.apps = {};
-if(!state.wallpaper) state.wallpaper = '';
-
+if(!state.files) state.files = { 'welcome.txt': 'Welcome to SkyOS!\\nDouble-click icons or open Start (Sky).' };
+if(!state.apps) state.apps = {}; 
+if(!state.pinned) state.pinned = ['explorer','terminal','settings','notes','calculator','store']; 
+saveState();
 function saveState(){ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
 
-/* apply saved wallpaper (if present) */
-const desktopEl = document.getElementById('desktop');
-function applyWallpaper(){
-  if(state.wallpaper && state.wallpaper.length){
-    desktopEl.style.backgroundImage = `url('${state.wallpaper}')`;
-  } else {
-    desktopEl.style.backgroundImage = "url('https://images.unsplash.com/photo-1505483531331-3c2d3aa0f9f6?auto=format&fit=crop&w=1920&q=80')";
-  }
-}
-applyWallpaper();
+const EMOJI = {
+  explorer: '📁',
+  terminal: '⌘',
+  settings: '⚙️',
+  notes: '📝',
+  calculator: '🧮',
+  store: '🛒',
+  wallpaper: '🖼️'
+};
 
-/* ------------------ desktop icons ------------------ */
 const iconsRoot = document.getElementById('icons');
 const windowsRoot = document.getElementById('windows');
+const dock = document.getElementById('dock');
+const startBtn = document.getElementById('startBtn');
+const startMenu = document.getElementById('startMenu');
 let zIndex = 10;
 
-const defaultIcons = [
-  {id:'explorer', name:'File Explorer', x:30, y:40, icon:'📁'},
-  {id:'terminal', name:'Terminal', x:30, y:140, icon:'>_'},
-  {id:'settings', name:'Settings', x:30, y:240, icon:'⚙️'},
-  {id:'notes', name:'Notes', x:30, y:340, icon:'📝'},
+const DEFAULT_ICONS = [
+  {id:'explorer', name:'File Explorer', x:30, y:40},
+  {id:'terminal', name:'Terminal', x:30, y:140},
+  {id:'settings', name:'Settings', x:30, y:240},
+  {id:'notes', name:'Notes', x:30, y:340},
+  {id:'calculator', name:'Calculator', x:30, y:440},
+  {id:'store', name:'Store', x:30, y:540}
 ];
 
 function renderIcons(){
   iconsRoot.innerHTML = '';
-  defaultIcons.forEach(ic=>{
+  DEFAULT_ICONS.forEach(ic=>{
     const el = document.createElement('div');
-    el.className='icon';
+    el.className = 'icon';
     el.style.left = ic.x + 'px';
     el.style.top  = ic.y + 'px';
-    // marker div not clickable itself (pointer-events:none) but parent handles dblclick
-    el.innerHTML = `<div style="width:100%;text-align:center;font-size:40px;pointer-events:none">${ic.icon}</div><span>${ic.name}</span>`;
-    el.ondblclick = ()=> openApp(ic.id);
+    el.innerHTML = `<div>${EMOJI[ic.id] || '•'}</div><span>${ic.name}</span>`;
+    el.ondblclick = ()=>openApp(ic.id);
     iconsRoot.appendChild(el);
   });
 }
 renderIcons();
 
-/* ------------------ start menu + dock ------------------ */
-const startBtn = document.getElementById('startBtn');
-const startMenu = document.getElementById('startMenu');
+startBtn.addEventListener('click', (e)=>{ 
+  e.stopPropagation(); 
+  const open = startMenu.style.display !== 'block'; 
+  startMenu.style.display = open ? 'block' : 'none'; 
+  startBtn.setAttribute('aria-expanded', open); 
+  renderStartMenu(); 
+});
+document.addEventListener('click', (e)=>{ 
+  if(!startMenu.contains(e.target) && !startBtn.contains(e.target)) 
+    startMenu.style.display='none'; 
+});
 
-startBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const open = startMenu.style.display !== 'block'; startMenu.style.display = open ? 'block' : 'none'; startBtn.setAttribute('aria-expanded', open); renderStartMenu(); });
-document.addEventListener('click', (e)=>{ if(!startMenu.contains(e.target) && !startBtn.contains(e.target)) startMenu.style.display='none'; });
+function prettify(id){ 
+  return id.split(/[-_]/)
+    .map(s=>s[0].toUpperCase()+s.slice(1))
+    .join(' '); 
+}
 
 function renderStartMenu(){
-  const pinned = document.getElementById('pinnedGrid'); pinned.innerHTML='';
-  const apps = ['explorer','terminal','settings','notes','calculator','wallpaper'];
-  apps.forEach(id=>{
-    const tile = document.createElement('div'); tile.className='tile'; tile.textContent = prettifyAppName(id);
-    tile.onclick = ()=>{ openApp(id); startMenu.style.display='none'; };
-    pinned.appendChild(tile);
-  });
-  document.getElementById('recommended').innerHTML = '<div style="color:var(--muted)">No recommendations</div>';
-}
-function prettifyAppName(id){ return id.split(/[-_]/).map(s=> s[0].toUpperCase()+s.slice(1)).join(' '); }
+  const pinnedGrid = document.getElementById('pinnedGrid');
+  pinnedGrid.innerHTML = '';
+  const pinned = state.pinned.length ? state.pinned : 
+   ['explorer','terminal','settings','notes','calculator','store'];
 
-/* Dock */
-const dock = document.getElementById('dock');
+  pinned.forEach(id=>{
+    const t = document.createElement('div'); t.className='tile';
+    t.innerHTML = `<div class="emoji">${EMOJI[id]||'•'}</div><div style="font-size:12px">${prettify(id)}</div>`;
+    t.title = prettify(id);
+    t.onclick = ()=>{ openApp(id); startMenu.style.display='none'; };
+    pinnedGrid.appendChild(t);
+  });
+
+  document.getElementById('recommended').innerHTML = 
+    `<div style="color:var(--muted)">Recommended: none</div>`;
+}
+
 function renderDock(){
-  dock.innerHTML='';
-  const apps = ['explorer','terminal','settings'];
-  apps.forEach(a=>{
-    const b = document.createElement('div'); b.className='start-btn'; b.style.width='40px'; b.style.height='40px';
-    b.style.display='flex'; b.style.alignItems='center'; b.style.justifyContent='center'; b.style.borderRadius='10px';
-    b.textContent = appIcon(a); b.title = prettifyAppName(a); b.onclick = ()=> openApp(a);
-    // right-click context
-    b.addEventListener('contextmenu',(ev)=>{ ev.preventDefault(); showDockContext(a, ev.clientX, ev.clientY); });
+  dock.innerHTML = '';
+  const dockItems = ['explorer','terminal','settings','store'];
+  dockItems.forEach(id=>{
+    const b = document.createElement('div');
+    b.className = 'start-btn';
+    b.style.minWidth = '40px';
+    b.textContent = EMOJI[id] || prettify(id).charAt(0);
+    b.title = prettify(id);
+    b.onclick = ()=>openApp(id);
     dock.appendChild(b);
   });
 }
-function appIcon(id){ return id==='terminal'?'>_': id==='explorer'?'📁': id==='settings'?'⚙️':'●'; }
 renderDock();
 
-/* ------------------ window manager ------------------ */
+/* ---------------- window manager ---------------- */
 function createWindow(opts){
-  const win = document.createElement('div'); win.className='window';
-  win.style.left = (opts.x||80) + 'px';
-  win.style.top  = (opts.y||80) + 'px';
-  win.style.width = (opts.width||720) + 'px';
-  win.style.height = (opts.height||460) + 'px';
+  const win = document.createElement('div'); 
+  win.className='window';
+  win.style.left = (opts.x||80)+'px'; 
+  win.style.top = (opts.y||80)+'px';
+  win.style.width = (opts.width||720)+'px'; 
+  win.style.height = (opts.height||460)+'px';
   win.style.zIndex = ++zIndex;
   win.dataset.app = opts.app || 'app';
 
-  // header
   const header = document.createElement('div'); header.className='win-header';
-  const title = document.createElement('div'); title.className='win-title'; title.textContent = opts.title || 'App';
+  const title = document.createElement('div'); title.className='win-title';
+  title.textContent = opts.title || prettify(opts.app||'App');
   const controls = document.createElement('div'); controls.className='win-controls';
-  const btnMin = document.createElement('button'); btnMin.className='min'; btnMin.textContent='—';
-  const btnMax = document.createElement('button'); btnMax.className='max'; btnMax.textContent='□';
-  const btnClose = document.createElement('button'); btnClose.className='close'; btnClose.textContent='✕';
-  controls.appendChild(btnMin); controls.appendChild(btnMax); controls.appendChild(btnClose);
-  header.appendChild(title); header.appendChild(controls);
 
-  const body = document.createElement('div'); body.className='win-body';
-  win.appendChild(header); win.appendChild(body);
-  document.getElementById('windows').appendChild(win);
+  const btnMin = document.createElement('button'); btnMin.textContent='—';
+  const btnMax = document.createElement('button'); btnMax.textContent='□';
+  const btnClose = document.createElement('button'); btnClose.textContent='✕';
 
-  // attach content (node or HTML)
-  if(opts.content instanceof Node) body.appendChild(opts.content); else body.innerHTML = opts.content || '';
+  controls.append(btnMin,btnMax,btnClose);
+  header.append(title,controls);
 
-  // events
-  header.addEventListener('mousedown', (e)=>{ e.preventDefault(); bringToFront(win); startDrag(win,e); });
-  header.addEventListener('dblclick', ()=>{ toggleMax(win); });
-  btnClose.onclick = ()=>win.remove();
-  btnMin.onclick = ()=>{ win.classList.add('hidden'); createTaskbarEntry(win); };
-  btnMax.onclick = ()=>toggleMax(win);
+  const body = document.createElement('div'); 
+  body.className='win-body';
+  if(opts.content instanceof Node) body.appendChild(opts.content);
+  else body.innerHTML = opts.content || '';
+  win.append(header,body);
+  windowsRoot.appendChild(win);
+
+  header.addEventListener('mousedown', (e)=>{ 
+    e.preventDefault(); 
+    bringToFront(win); 
+    startDrag(win,e); 
+  });
+  header.addEventListener('dblclick', ()=>toggleMax(win));
   win.addEventListener('mousedown', ()=>bringToFront(win));
+
+  btnClose.onclick = ()=>win.remove();
+
+  /* --------------------------------------------------
+     UPDATED MINIMIZE FIX (ONLY CHANGE YOU REQUESTED)
+     -------------------------------------------------- */
+  btnMin.onclick = ()=>{
+      if (win.dataset.max === '1') {
+          win.dataset.max = '0';
+          iconsRoot.style.visibility = 'visible';
+      }
+      win.classList.add('hidden');
+      createTaskbarEntry(win);
+
+      const stillMax = Array.from(document.querySelectorAll('.window'))
+          .some(w => w.dataset.max === '1');
+      iconsRoot.style.visibility = stillMax ? 'hidden' : 'visible';
+  };
+  /* -------------------------------------------------- */
+
+  btnMax.onclick = ()=>toggleMax(win);
 
   return win;
 }
 
 function bringToFront(win){ win.style.zIndex = ++zIndex; }
 
-/* dragging with clamp */
 let drag = null;
-function startDrag(win, e){
+function startDrag(win,e){
   bringToFront(win);
-  drag = { win, ox: e.clientX, oy: e.clientY, lx: win.offsetLeft, ly: win.offsetTop };
-  document.body.style.userSelect = 'none';
+  drag = {win, ox:e.clientX, oy:e.clientY, lx: win.offsetLeft, ly: win.offsetTop};
+  document.body.style.userSelect='none';
 }
 window.addEventListener('mousemove', (e)=>{
   if(!drag) return;
   const nx = drag.lx + (e.clientX - drag.ox);
   const ny = drag.ly + (e.clientY - drag.oy);
   const maxX = window.innerWidth - Math.min(100, drag.win.offsetWidth);
-  const maxY = window.innerHeight - Math.min(100, drag.win.offsetHeight) - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'));
+  const maxY = window.innerHeight - Math.min(100, drag.win.offsetHeight) - 
+               parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'));
   drag.win.style.left = Math.max(0, Math.min(nx, maxX)) + 'px';
   drag.win.style.top  = Math.max(0, Math.min(ny, maxY)) + 'px';
 });
-window.addEventListener('mouseup', ()=>{ drag = null; document.body.style.userSelect = 'auto'; });
+window.addEventListener('mouseup', ()=>{ drag = null; document.body.style.userSelect='auto'; });
 
-/* maximize / restore plus hide desktop icons when maximized */
 function toggleMax(win){
   if(win.dataset.max === '1'){
     try{
@@ -273,62 +305,39 @@ function toggleMax(win){
       win.style.width = prev.width || '720px';
       win.style.height = prev.height || '460px';
     }catch(e){}
-    win.dataset.max = '0';
+    win.dataset.max='0';
   } else {
-    win.dataset.prevPos = JSON.stringify({ left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height, position: win.style.position||'absolute' });
+    win.dataset.prevPos = JSON.stringify({ 
+      left: win.style.left, 
+      top: win.style.top, 
+      width: win.style.width, 
+      height: win.style.height, 
+      position: win.style.position||'absolute' 
+    });
     win.style.position = 'fixed';
-    win.style.left = '0px'; win.style.top = '0px'; win.style.width = '100%'; win.style.height = `calc(100% - var(--taskbar-height))`;
-    win.dataset.max = '1';
+    win.style.left = '0px'; 
+    win.style.top = '0px'; 
+    win.style.width = '100%'; 
+    win.style.height = `calc(100% - var(--taskbar-height))`;
+    win.dataset.max='1';
   }
-  // hide desktop icons to avoid overlap
-  const anyMax = Array.from(document.querySelectorAll('.window')).some(w => w.dataset.max === '1');
+
+  const anyMax = Array.from(document.querySelectorAll('.window'))
+    .some(w=>w.dataset.max==='1');
   iconsRoot.style.visibility = anyMax ? 'hidden' : 'visible';
 }
 
-/* keyboard snapping/tiling using Alt + Arrow */
-window.addEventListener('keydown', (e)=>{
-  if(!e.altKey) return;
-  const wins = Array.from(document.querySelectorAll('.window'));
-  if(!wins.length) return;
-  // the focused window is the topmost (largest z-index)
-  wins.sort((a,b)=> (parseInt(b.style.zIndex)||0) - (parseInt(a.style.zIndex)||0));
-  const w = wins[0];
-  const vh = window.innerHeight - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'));
-  if(e.key === 'ArrowLeft'){ w.style.left='0px'; w.style.top='0px'; w.style.width='50%'; w.style.height = vh + 'px'; }
-  if(e.key === 'ArrowRight'){ w.style.left='50%'; w.style.top='0px'; w.style.width='50%'; w.style.height = vh + 'px'; }
-  if(e.key === 'ArrowUp'){ w.style.left='0px'; w.style.top='0px'; w.style.width='100%'; w.style.height = Math.floor(vh/2) + 'px'; }
-  if(e.key === 'ArrowDown'){ w.style.left='0px'; w.style.top=(Math.floor(window.innerHeight/2))+'px'; w.style.width='100%'; w.style.height = Math.floor(vh/2) + 'px'; }
-});
-
-/* ------------------ taskbar app list + context ------------------ */
+/* create minimize entry */
 function createTaskbarEntry(win){
-  const el = document.createElement('div'); el.className='start-btn'; el.textContent = win.dataset.app; el.title = prettifyAppName(win.dataset.app);
+  const el = document.createElement('div'); 
+  el.className='start-btn';
+  el.textContent = EMOJI[win.dataset.app] || prettify(win.dataset.app).charAt(0);
+  el.title = prettify(win.dataset.app);
   el.onclick = ()=>{ win.classList.remove('hidden'); windowsRoot.appendChild(win); bringToFront(win); el.remove(); };
-  el.addEventListener('contextmenu',(ev)=>{ ev.preventDefault(); showTaskContext(win, ev.clientX, ev.clientY); });
   dock.appendChild(el);
 }
-function showTaskContext(win, x, y){
-  const menu = document.createElement('div'); menu.style.position='fixed'; menu.style.left = x+'px'; menu.style.top = y+'px';
-  menu.style.background='rgba(0,0,0,0.95)'; menu.style.padding='6px'; menu.style.borderRadius='8px'; menu.style.zIndex = 999999;
-  const items = [{t:'Restore',fn:()=>{ win.classList.remove('hidden'); windowsRoot.appendChild(win); bringToFront(win); menu.remove(); }},
-                 {t:'Maximize',fn:()=>{ toggleMax(win); menu.remove(); }},
-                 {t:'Close',fn:()=>{ win.remove(); menu.remove(); }}];
-  items.forEach(it=>{ const r = document.createElement('div'); r.textContent = it.t; r.style.padding='6px 10px'; r.style.cursor='pointer'; r.addEventListener('click', it.fn); menu.appendChild(r); });
-  document.body.appendChild(menu);
-  setTimeout(()=>document.addEventListener('click', ()=>menu.remove(), {once:true}), 50);
-}
 
-/* simple dock icon right-click (app-level) */
-function showDockContext(appId, x, y){
-  const menu = document.createElement('div'); menu.style.position='fixed'; menu.style.left = x+'px'; menu.style.top = y+'px';
-  menu.style.background='rgba(0,0,0,0.95)'; menu.style.padding='6px'; menu.style.borderRadius='8px'; menu.style.zIndex = 999999;
-  const r1 = document.createElement('div'); r1.textContent = 'Open'; r1.style.padding='6px 10px'; r1.style.cursor='pointer'; r1.onclick = ()=>{ openApp(appId); menu.remove(); };
-  menu.appendChild(r1);
-  document.body.appendChild(menu);
-  setTimeout(()=>document.addEventListener('click', ()=>menu.remove(), {once:true}), 50);
-}
-
-/* ------------------ apps ------------------ */
+/* ---------------- apps ---------------- */
 function openApp(id){
   if(id==='terminal') openTerminal();
   else if(id==='explorer') openExplorer();
@@ -336,136 +345,362 @@ function openApp(id){
   else if(id==='notes') openNotes();
   else if(id==='calculator') openCalculator();
   else if(id==='wallpaper') openWallpaperPicker();
-  else createWindow({title:prettifyAppName(id), app:id, content:`<div style="padding:12px">App ${id} - placeholder</div>`});
+  else if(id==='store') openStore();
+  else createWindow({title:prettify(id), app:id, content:`<div style="padding:12px">App ${id} - placeholder</div>`});
 }
 
-/* ---- Terminal ---- */
 function openTerminal(){
-  const term = document.createElement('div'); term.className='terminal';
-  const out  = document.createElement('div'); out.className='terminal-output';
-  const inputRow = document.createElement('div'); inputRow.className='terminal-input';
-  const prompt = document.createElement('div'); prompt.style.opacity='0.9'; prompt.textContent='$';
-  const input  = document.createElement('input'); input.placeholder='Type command (help)'; input.autofocus = true;
-  inputRow.appendChild(prompt); inputRow.appendChild(input);
+  const term=document.createElement('div'); term.className='terminal';
+  const out=document.createElement('div'); out.className='terminal-output';
+  const inputRow=document.createElement('div'); inputRow.className='terminal-input';
+  const prompt=document.createElement('div'); prompt.style.opacity='0.9'; prompt.textContent='$';
+  const input=document.createElement('input'); input.placeholder='Type command (help)'; input.autofocus=true;
+
+  inputRow.appendChild(prompt); inputRow.appendChild(input); 
   term.appendChild(out); term.appendChild(inputRow);
+  const win=createWindow({title:'Terminal', app:'terminal', content:''});
+  win.querySelector('.win-body').appendChild(term);
 
-  const win = createWindow({title:'Terminal', app:'terminal', content:term});
-  const print = (text)=>{
-    const line = document.createElement('div'); line.className='terminal-line'; line.innerHTML = text.replace(/\n/g,'<br>');
-    out.appendChild(line); out.scrollTop = out.scrollHeight;
-  };
-  print('Welcome to Terminal — type <b>help</b>');
-  input.addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter'){ const cmd = input.value.trim(); if(!cmd) return; print(`<div style="color:#9bd3ff">$ ${escapeHtml(cmd)}</div>`); handleCmd(cmd, print, out); input.value=''; }
+  function print(t){
+    const line=document.createElement('div'); 
+    line.className='terminal-line';
+    line.innerHTML=t.replace(/\n/g,'<br>');
+    out.appendChild(line); 
+    out.scrollTop = out.scrollHeight;
+  }
+
+  print('Welcome to SkyOS Terminal — type help');
+
+  input.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter'){
+      const cmd=input.value.trim();
+      if(!cmd) return;
+      print(`<div style="color:#9bd3ff">$ ${cmd}</div>`);
+      handleCmd(cmd,print,out);
+      input.value='';
+    }
   });
-  setTimeout(()=>input.focus(),80);
 }
-function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* Terminal command handler */
-function handleCmd(cmd, print, outputEl){
-  const parts = cmd.split(/\s+/); const c = parts[0]; const args = parts.slice(1);
-  if(!c) return;
-  if(c === 'help'){ print('Commands: help, clear, ls, cat [file], date, time, echo [text], theme [dark|light], touch [name]'); }
-  else if(c === 'clear'){ if(outputEl) outputEl.innerHTML = ''; }
-  else if(c === 'ls'){ print(Object.keys(state.files).join('  ')); }
-  else if(c === 'cat'){ const f = args[0]; if(!f) print('Usage: cat filename'); else print(state.files[f] || ('No such file: '+f)); }
-  else if(c === 'date'){ print(new Date().toDateString()); }
-  else if(c === 'time'){ print(new Date().toLocaleTimeString()); }
-  else if(c === 'echo'){ print(args.join(' ')); }
-  else if(c === 'theme'){ if(args[0]==='light'){ document.documentElement.style.setProperty('--bg','#f6f8fb'); print('Theme set to light'); } else { document.documentElement.style.removeProperty('--bg'); print('Theme set to dark'); } }
-  else if(c === 'touch'){ const name = args[0]; if(!name) print('Usage: touch filename'); else { state.files[name] = ''; saveState(); print('Created '+name); } }
+function handleCmd(cmd, print, outEl){
+  const parts = cmd.split(/\s+/); 
+  const c = parts[0]; 
+  const args = parts.slice(1);
+
+  if(c==='help') print('Commands: help, clear, ls, cat [file], date, time, echo [text], touch [name]');
+  else if(c==='clear') outEl.innerHTML = '';
+  else if(c==='ls') print(Object.keys(state.files).join('  '));
+  else if(c==='cat'){
+    const f=args[0]; 
+    if(!f) print('Usage: cat filename'); 
+    else print(state.files[f] || ('No such file: '+f));
+  }
+  else if(c==='date') print(new Date().toDateString());
+  else if(c==='time') print(new Date().toLocaleTimeString());
+  else if(c==='echo') print(args.join(' '));
+  else if(c==='touch'){
+    const name=args[0]; 
+    if(!name) print('Usage: touch filename'); 
+    else { state.files[name]=''; saveState(); print('Created '+name); }
+  }
   else print('Unknown command: '+c);
 }
 
-/* ---- Explorer ---- */
 function openExplorer(){
   const filesHtml = Object.keys(state.files).map(k=>{
     const preview = String(state.files[k]||'').slice(0,120).replace(/</g,'&lt;');
     return `<div class="file"><div style="font-size:20px">📄</div><div style="flex:1"><strong>${k}</strong><div style="color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div><div><button class="btn open">Open</button></div></div>`;
   }).join('');
-  const content = document.createElement('div'); content.className='split';
-  const left = document.createElement('div'); left.style.flex='1'; left.className='explorer'; left.innerHTML = filesHtml;
-  const res = document.createElement('div'); res.className='resizer';
-  const right = document.createElement('div'); right.className='right-pane'; right.innerHTML = `<div style="font-weight:700;margin-bottom:8px">Details</div><div id="fileDetails" style="color:var(--muted)">Select a file</div>`;
-  content.appendChild(left); content.appendChild(res); content.appendChild(right);
+
+  const content = document.createElement('div'); 
+  content.className='split';
+
+  const left = document.createElement('div'); 
+  left.style.flex='1'; left.className='explorer';
+  left.innerHTML = filesHtml;
+
+  const res = document.createElement('div'); 
+  res.className='resizer';
+
+  const right = document.createElement('div'); 
+  right.className='right-pane'; 
+  right.innerHTML = `<div style="font-weight:700;margin-bottom:8px">Details</div><div id="fileDetails" style="color:var(--muted)">Select a file</div>`;
+
+  content.appendChild(left); 
+  content.appendChild(res); 
+  content.appendChild(right);
+
   const win = createWindow({title:'File Explorer', app:'explorer', content:content});
-  win.querySelectorAll('.open').forEach((b,i)=>{ b.onclick = ()=>{ const fname = Object.keys(state.files)[i]; openNoteWindow(fname); }; });
+
+  win.querySelectorAll('.open').forEach((b,i)=>{
+    b.onclick = ()=>{
+      const fname = Object.keys(state.files)[i];
+      openNoteWindow(fname);
+    };
+  });
 }
 
-/* ---- Notes (editor) ---- */
 function openNoteWindow(fname){
-  const content = document.createElement('div'); content.style.display='flex'; content.style.flexDirection='column'; content.style.height='100%';
-  const ta = document.createElement('textarea'); ta.style.flex='1'; ta.style.background='transparent'; ta.style.border='none'; ta.style.color='var(--muted)'; ta.style.outline='none'; ta.style.padding='12px'; ta.value = state.files[fname] || '';
-  const row = document.createElement('div'); row.style.textAlign='right'; row.style.marginTop='8px';
-  const saveBtn = document.createElement('button'); saveBtn.className='btn save'; saveBtn.textContent='Save'; row.appendChild(saveBtn);
-  content.appendChild(ta); content.appendChild(row);
+  const content = document.createElement('div');
+  content.style.display='flex'; 
+  content.style.flexDirection='column'; 
+  content.style.height='100%';
+
+  const ta = document.createElement('textarea');
+  ta.style.flex='1'; 
+  ta.style.background='transparent'; 
+  ta.style.border='none'; 
+  ta.style.color='var(--muted)'; 
+  ta.style.outline='none'; 
+  ta.style.padding='12px';
+  ta.value = state.files[fname] || '';
+
+  const row = document.createElement('div'); 
+  row.style.textAlign='right'; 
+  row.style.marginTop='8px';
+
+  const saveBtn = document.createElement('button'); 
+  saveBtn.className='btn save'; 
+  saveBtn.textContent='Save';
+
+  row.appendChild(saveBtn);
+
+  content.appendChild(ta); 
+  content.appendChild(row);
+
   const win = createWindow({title:fname, app:'notes', content:content});
-  saveBtn.onclick = ()=>{ state.files[fname] = ta.value; saveState(); showToast('Saved '+fname); };
+
+  saveBtn.onclick = ()=>{
+    state.files[fname] = ta.value;
+    saveState();
+    showToast('Saved '+fname);
+  };
 }
 
-/* ---- Settings ---- */
+function openNotes(){
+  const fname = 'note-'+Date.now()+'.txt';
+  state.files[fname] = state.files[fname] || '';
+  saveState(); 
+  openNoteWindow(fname);
+}
+
 function openSettings(){
-  const content = document.createElement('div'); content.className='settings';
-  content.innerHTML = `<div class="row"><div>Theme</div><div><button class="btn" id="themeToggle">Toggle UI Theme</button></div></div><div class="row"><div>Reset</div><div><button id="resetBtn" class="btn">Reset</button></div></div>`;
+  const content = document.createElement('div'); 
+  content.className='settings';
+
+  content.innerHTML = `
+  <div class="row">
+    <div>Theme</div>
+    <div><button class="btn" id="themeToggle">Toggle UI Theme</button></div>
+  </div>
+  <div class="row">
+    <div>Reset</div>
+    <div><button id="resetBtn" class="btn">Reset</button></div>
+  </div>`;
+
   const win = createWindow({title:'Settings', app:'settings', content:content});
-  win.querySelector('#themeToggle').onclick = ()=>{ document.body.classList.toggle('light'); showToast('Toggled theme'); };
-  win.querySelector('#resetBtn').onclick = ()=>{ if(confirm('Reset state?')){ localStorage.removeItem(STATE_KEY); location.reload(); } };
+
+  win.querySelector('#themeToggle').onclick = ()=>{
+    document.body.classList.toggle('light'); 
+    showToast('Toggled theme');
+  };
+
+  win.querySelector('#resetBtn').onclick = ()=>{
+    if(confirm('Reset state?')){
+      localStorage.removeItem(STATE_KEY);
+      location.reload();
+    }
+  };
 }
 
-/* ---- Calculator ---- */
 function openCalculator(){
-  const content = document.createElement('div'); content.style.display='flex'; content.style.flexDirection='column'; content.style.height='100%';
-  const inp = document.createElement('input'); inp.style.fontSize='20px'; inp.style.padding='10px'; inp.style.borderRadius='8px'; inp.style.border='none'; inp.style.background='rgba(255,255,255,0.02)'; inp.style.color='var(--muted)'; inp.placeholder='12*3+4';
-  const row = document.createElement('div'); row.style.textAlign='right'; row.style.marginTop='8px';
-  const btn = document.createElement('button'); btn.className='btn'; btn.textContent='Calculate'; row.appendChild(btn);
-  const out = document.createElement('div'); out.style.marginTop='12px'; out.style.color='var(--muted)';
-  content.appendChild(inp); content.appendChild(row); content.appendChild(out);
+  const content = document.createElement('div'); 
+  content.style.display='flex'; 
+  content.style.flexDirection='column'; 
+  content.style.height='100%';
+
+  const inp = document.createElement('input');
+  inp.style.fontSize='20px'; 
+  inp.style.padding='10px'; 
+  inp.style.borderRadius='8px'; 
+  inp.style.border='none'; 
+  inp.style.background='rgba(255,255,255,0.02)'; 
+  inp.style.color='var(--muted)';
+  inp.placeholder='12*3+4';
+
+  const row = document.createElement('div'); 
+  row.style.textAlign='right'; 
+  row.style.marginTop='8px';
+
+  const btn = document.createElement('button'); 
+  btn.className='btn'; 
+  btn.textContent='Calculate';
+
+  row.appendChild(btn);
+
+  const out = document.createElement('div'); 
+  out.style.marginTop='12px'; 
+  out.style.color='var(--muted)';
+
+  content.appendChild(inp); 
+  content.appendChild(row); 
+  content.appendChild(out);
+
   const win = createWindow({title:'Calculator', app:'calculator', content:content});
-  btn.onclick = ()=>{ try{ const res = Function('return ('+inp.value+')')(); out.textContent = String(res); } catch(e){ out.textContent = 'Error'; } };
+
+  btn.onclick = ()=>{
+    try{ 
+      const res = Function('return ('+inp.value+')')(); 
+      out.textContent = String(res); 
+    } catch(e){ 
+      out.textContent = 'Error'; 
+    }
+  };
 }
 
-/* ---- Wallpaper picker ---- */
+/* Wallpaper picker (optional) */
 function openWallpaperPicker(){
-  const content = document.createElement('div'); content.style.padding='8px';
-  const input = document.createElement('input'); input.placeholder='Paste image URL here'; input.style.width='100%'; input.style.marginBottom='8px';
-  const setBtn = document.createElement('button'); setBtn.className='btn'; setBtn.textContent='Set Wallpaper';
-  const resetBtn = document.createElement('button'); resetBtn.className='btn'; resetBtn.style.marginLeft='8px'; resetBtn.textContent='Reset to Default';
-  content.appendChild(input); content.appendChild(setBtn); content.appendChild(resetBtn);
+  const content = document.createElement('div'); 
+  content.style.padding='8px';
+
+  const input = document.createElement('input');
+  input.placeholder='Paste image URL here (optional)';
+  input.style.width='100%';
+  input.style.marginBottom='8px';
+
+  const setBtn = document.createElement('button'); 
+  setBtn.className='btn'; 
+  setBtn.textContent='Set Wallpaper';
+
+  const resetBtn = document.createElement('button'); 
+  resetBtn.className='btn'; 
+  resetBtn.style.marginLeft='8px'; 
+  resetBtn.textContent='Reset to Default (gradient)';
+
+  content.appendChild(input); 
+  content.appendChild(setBtn); 
+  content.appendChild(resetBtn);
+
   const win = createWindow({title:'Wallpaper', app:'wallpaper', content:content});
-  setBtn.onclick = ()=>{ const url = input.value.trim(); if(url){ state.wallpaper = url; saveState(); applyWallpaper(); showToast('Wallpaper set'); } };
-  resetBtn.onclick = ()=>{ state.wallpaper = ''; saveState(); applyWallpaper(); showToast('Wallpaper reset'); };
+
+  setBtn.onclick = ()=>{
+    const url = input.value.trim();
+    if(url){
+      state.wallpaper = url; 
+      saveState(); 
+      applyWallpaper(); 
+      showToast('Wallpaper set');
+    }
+  };
+
+  resetBtn.onclick = ()=>{
+    state.wallpaper = '';
+    saveState(); 
+    applyWallpaper(); 
+    showToast('Wallpaper reset');
+  };
 }
 
-/* ------------------ utilities ------------------ */
+function applyWallpaper(){
+  if(state.wallpaper && state.wallpaper.length)
+    document.getElementById('desktop').style.backgroundImage = `url('${state.wallpaper}')`;
+  else 
+    document.getElementById('desktop').style.backgroundImage = '';
+}
+applyWallpaper();
+
+/* Store app */
+const STORE_APPS = [
+  {id:'notes', name:'Notes', emoji:'📝', desc:'Simple notes editor'},
+  {id:'calculator', name:'Calculator', emoji:'🧮', desc:'Basic calculator'},
+  {id:'wallpaper', name:'Wallpapers', emoji:'🖼️', desc:'Set a desktop wallpaper'}
+];
+
+function openStore(){
+  const content = document.createElement('div'); 
+  content.style.display='flex'; 
+  content.style.flexDirection='column'; 
+  content.style.gap='8px';
+
+  const grid = document.createElement('div'); 
+  grid.style.display='grid'; 
+  grid.style.gridTemplateColumns='repeat(2,1fr)'; 
+  grid.style.gap='8px';
+
+  STORE_APPS.forEach(a=>{
+    const card = document.createElement('div');
+    card.style.padding='10px';
+    card.style.borderRadius='8px';
+    card.style.background='rgba(255,255,255,0.02)';
+    card.innerHTML = `
+      <div style="font-size:22px">${a.emoji}</div>
+      <div style="font-weight:700">${a.name}</div>
+      <div style="color:var(--muted);font-size:13px">${a.desc}</div>`;
+
+    const install = document.createElement('button'); 
+    install.className='btn'; 
+    install.textContent = 'Install'; 
+    install.style.marginTop='8px';
+
+    install.onclick = ()=>{
+      if(!state.pinned.includes(a.id)) 
+          state.pinned.push(a.id);
+      state.apps[a.id] = true; 
+      saveState(); 
+      renderStartMenu(); 
+      showToast(a.name+' installed and pinned'); 
+    };
+
+    card.appendChild(install);
+    grid.appendChild(card);
+  });
+
+  content.appendChild(grid);
+
+  const win = createWindow({title:'Store', app:'store', content:content});
+}
+
+/* ---------------- utilities ---------------- */
 function showToast(msg){
-  const t = document.createElement('div'); t.className='toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(),1400);
+  const t=document.createElement('div'); 
+  t.className='toast'; 
+  t.textContent=msg; 
+  document.body.appendChild(t); 
+  setTimeout(()=>t.remove(),1500);
 }
 
 /* keyboard shortcuts */
 window.addEventListener('keydown', (e)=>{
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='t'){ e.preventDefault(); openTerminal(); }
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='e'){ e.preventDefault(); openExplorer(); }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='t'){
+    e.preventDefault(); 
+    openTerminal(); 
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='e'){
+    e.preventDefault(); 
+    openExplorer(); 
+  }
 });
 
-/* double click desktop => new note (but avoid when clicking windows) */
-document.getElementById('desktop').addEventListener('dblclick', (e)=>{
-  if(e.target === desktopEl) openNotes();
+/* double-click desktop → new note */
+document.getElementById('desktop').addEventListener('dblclick',(e)=>{
+  if(e.target.id === 'desktop') openNotes();
 });
 
-/* make non-editable text/images not clickable/selectable */
-document.addEventListener('mousedown', (e)=>{
-  const tag = e.target.tagName.toLowerCase();
-  // block dragging/selecting of raw images or inner icon graphic
-  if(tag === 'img' || e.target.classList.contains('icon')){ e.preventDefault(); }
+/* disable dragging */
+document.addEventListener('mousedown',(e)=>{
+  const tag = e.target.tagName.toLowerCase(); 
+  if(tag==='img' || e.target.classList.contains('icon')) 
+      e.preventDefault();
 });
 
-/* ensure text doesn't overflow in window headers (handled via CSS ellipsis) */
-
-/* final: initial file ensure */
-/* UPDATED: Renamed welcome text */
-state.files['welcome.txt'] = state.files['welcome.txt'] || 'This is SkyOS — double-click icons to open apps. Use Terminal (help).';
+/* final setup */
+state.files['welcome.txt'] = state.files['welcome.txt'] ||
+   'Welcome to SkyOS — double-click icons to open apps. Use Sky to open Start.';
 saveState();
+renderStartMenu();
+renderIcons();
+renderDock();
+
 </script>
 </body>
 </html>
