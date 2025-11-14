@@ -75,6 +75,24 @@ img, .icon > div { -webkit-user-drag:none; pointer-events:none; }
 .btn{padding:8px 10px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer}
 .footer-note{position:absolute;left:12px;bottom:calc(var(--taskbar-height) + 18px);color:var(--muted);font-size:12px}
 .win-body *{max-width:100%;box-sizing:border-box}
+
+/* context menu */
+.ctx-menu {
+  position:fixed;
+  background:rgba(10,12,18,0.98);
+  color:var(--muted);
+  border-radius:8px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.6);
+  padding:6px;
+  z-index:999999;
+  min-width:160px;
+  font-size:14px;
+}
+.ctx-item {
+  display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer;
+}
+.ctx-item:hover { background: rgba(255,255,255,0.02); color: #e6eef6; }
+.ctx-emoji { font-size:16px; width:20px; text-align:center; }
 </style>
 </head>
 <body>
@@ -122,16 +140,63 @@ if(!state.pinned) state.pinned = ['explorer','terminal','settings','notes','calc
 saveState();
 function saveState(){ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
 
-const EMOJI = {
-  explorer: '📁',
-  terminal: '⌘',
-  settings: '⚙️',
-  notes: '📝',
-  calculator: '🧮',
-  store: '🛒',
-  wallpaper: '🖼️'
+/* ---------------- APPS registry (easy to add apps) ----------------
+   Add apps here with: id, name, emoji, description, content (HTML string)
+   content can be HTML or you can have the app open a custom function.
+*/
+const APPS = {
+  explorer: {
+    id: 'explorer',
+    name: 'File Explorer',
+    emoji: '📁',
+    desc: 'Browse and open files',
+    content: null // created dynamically in openExplorer()
+  },
+  terminal: {
+    id: 'terminal',
+    name: 'Terminal',
+    emoji: '⌘',
+    desc: 'Command line terminal',
+    content: null // created dynamically
+  },
+  settings: {
+    id: 'settings',
+    name: 'Settings',
+    emoji: '⚙️',
+    desc: 'System settings',
+    content: null
+  },
+  notes: {
+    id: 'notes',
+    name: 'Notes',
+    emoji: '📝',
+    desc: 'Simple notes editor',
+    content: null
+  },
+  calculator: {
+    id: 'calculator',
+    name: 'Calculator',
+    emoji: '🧮',
+    desc: 'Basic calculator',
+    content: null
+  },
+  wallpaper: {
+    id: 'wallpaper',
+    name: 'Wallpapers',
+    emoji: '🖼️',
+    desc: 'Set desktop wallpaper',
+    content: null
+  },
+  store: {
+    id: 'store',
+    name: 'Store',
+    emoji: '🛒',
+    desc: 'Get apps and pin them',
+    content: null
+  }
 };
 
+/* ---------------- globals / DOM roots ---------------- */
 const iconsRoot = document.getElementById('icons');
 const windowsRoot = document.getElementById('windows');
 const dock = document.getElementById('dock');
@@ -139,75 +204,98 @@ const startBtn = document.getElementById('startBtn');
 const startMenu = document.getElementById('startMenu');
 let zIndex = 10;
 
-const DEFAULT_ICONS = [
-  {id:'explorer', name:'File Explorer', x:30, y:40},
-  {id:'terminal', name:'Terminal', x:30, y:140},
-  {id:'settings', name:'Settings', x:30, y:240},
-  {id:'notes', name:'Notes', x:30, y:340},
-  {id:'calculator', name:'Calculator', x:30, y:440},
-  {id:'store', name:'Store', x:30, y:540}
+/* desktop icon positions (modifiable) */
+let desktopIcons = [
+  {id:'explorer', x:30, y:40},
+  {id:'terminal', x:30, y:140},
+  {id:'settings', x:30, y:240},
+  {id:'notes', x:30, y:340},
+  {id:'calculator', x:30, y:440},
+  {id:'store', x:30, y:540}
 ];
 
+/* internal clipboard for Copy/Cut/Paste operations (app id) */
+let internalClipboard = null;
+let internalCut = false;
+
+/* Utility: prettify id to name */
+function prettify(id){
+  return (APPS[id] && APPS[id].name) ? APPS[id].name : id.split(/[-_]/).map(s=>s[0].toUpperCase()+s.slice(1)).join(' ');
+}
+
+/* ---------------- render desktop icons ---------------- */
 function renderIcons(){
   iconsRoot.innerHTML = '';
-  DEFAULT_ICONS.forEach(ic=>{
+  desktopIcons.forEach((ic, idx)=>{
+    const app = APPS[ic.id] || {emoji:'•', name:ic.id};
     const el = document.createElement('div');
     el.className = 'icon';
     el.style.left = ic.x + 'px';
     el.style.top  = ic.y + 'px';
-    el.innerHTML = `<div>${EMOJI[ic.id] || '•'}</div><span>${ic.name}</span>`;
+    el.dataset.index = idx;
+    el.dataset.appid = ic.id;
+    el.innerHTML = `<div>${app.emoji}</div><span>${app.name}</span>`;
     el.ondblclick = ()=>openApp(ic.id);
+    // right-click on icon -> show app context menu
+    el.addEventListener('contextmenu', (ev)=>{
+      ev.preventDefault();
+      showContextMenu(ev.clientX, ev.clientY, {type:'icon', index:idx, appId:ic.id});
+    });
+    // allow dragging icons with Ctrl+drag (simple)
+    let dragIcon = null;
+    el.addEventListener('mousedown', (e)=>{
+      if(e.ctrlKey){
+        dragIcon = {el, startX:e.clientX, startY:e.clientY, origX:ic.x, origY:ic.y};
+        document.addEventListener('mousemove', iconMove);
+        document.addEventListener('mouseup', iconUp, {once:true});
+      }
+    });
+    function iconMove(ev){
+      if(!dragIcon) return;
+      const dx = ev.clientX - dragIcon.startX;
+      const dy = ev.clientY - dragIcon.startY;
+      const newX = Math.max(0, dragIcon.origX + dx);
+      const newY = Math.max(0, dragIcon.origY + dy);
+      ic.x = newX; ic.y = newY;
+      el.style.left = newX + 'px'; el.style.top = newY + 'px';
+    }
+    function iconUp(){ dragIcon = null; document.removeEventListener('mousemove', iconMove); saveState(); }
     iconsRoot.appendChild(el);
   });
 }
-renderIcons();
 
-startBtn.addEventListener('click', (e)=>{ 
-  e.stopPropagation(); 
-  const open = startMenu.style.display !== 'block'; 
-  startMenu.style.display = open ? 'block' : 'none'; 
-  startBtn.setAttribute('aria-expanded', open); 
-  renderStartMenu(); 
-});
-document.addEventListener('click', (e)=>{ 
-  if(!startMenu.contains(e.target) && !startBtn.contains(e.target)) 
-    startMenu.style.display='none'; 
-});
-
-function prettify(id){ 
-  return id.split(/[-_]/)
-    .map(s=>s[0].toUpperCase()+s.slice(1))
-    .join(' '); 
-}
+/* ---------------- Start menu & pinned icons (emoji tiles) ---------------- */
+startBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const open = startMenu.style.display !== 'block'; startMenu.style.display = open ? 'block' : 'none'; startBtn.setAttribute('aria-expanded', open); renderStartMenu(); });
+document.addEventListener('click', (e)=>{ if(!startMenu.contains(e.target) && !startBtn.contains(e.target)) startMenu.style.display='none'; });
 
 function renderStartMenu(){
   const pinnedGrid = document.getElementById('pinnedGrid');
   pinnedGrid.innerHTML = '';
-  const pinned = state.pinned.length ? state.pinned : 
-   ['explorer','terminal','settings','notes','calculator','store'];
-
+  const pinned = state.pinned && state.pinned.length ? state.pinned : Object.keys(APPS);
   pinned.forEach(id=>{
+    const app = APPS[id] || {emoji:'•', name:id};
     const t = document.createElement('div'); t.className='tile';
-    t.innerHTML = `<div class="emoji">${EMOJI[id]||'•'}</div><div style="font-size:12px">${prettify(id)}</div>`;
-    t.title = prettify(id);
+    t.innerHTML = `<div class="emoji">${app.emoji}</div><div style="font-size:12px">${app.name}</div>`;
+    t.title = app.name;
     t.onclick = ()=>{ openApp(id); startMenu.style.display='none'; };
     pinnedGrid.appendChild(t);
   });
-
-  document.getElementById('recommended').innerHTML = 
-    `<div style="color:var(--muted)">Recommended: none</div>`;
+  document.getElementById('recommended').innerHTML = `<div style="color:var(--muted)">Recommended: none</div>`;
 }
 
+/* ---------------- dock (taskbar icons) ---------------- */
 function renderDock(){
   dock.innerHTML = '';
   const dockItems = ['explorer','terminal','settings','store'];
   dockItems.forEach(id=>{
+    const app = APPS[id] || {emoji:id[0].toUpperCase(), name:id};
     const b = document.createElement('div');
     b.className = 'start-btn';
     b.style.minWidth = '40px';
-    b.textContent = EMOJI[id] || prettify(id).charAt(0);
-    b.title = prettify(id);
+    b.textContent = app.emoji || app.name.charAt(0);
+    b.title = app.name;
     b.onclick = ()=>openApp(id);
+    b.addEventListener('contextmenu',(ev)=>{ ev.preventDefault(); showContextMenu(ev.clientX, ev.clientY, {type:'dock', appId:id}); });
     dock.appendChild(b);
   });
 }
@@ -223,6 +311,7 @@ function createWindow(opts){
   win.style.height = (opts.height||460)+'px';
   win.style.zIndex = ++zIndex;
   win.dataset.app = opts.app || 'app';
+  win.dataset.max = '0';
 
   const header = document.createElement('div'); header.className='win-header';
   const title = document.createElement('div'); title.className='win-title';
@@ -243,32 +332,25 @@ function createWindow(opts){
   win.append(header,body);
   windowsRoot.appendChild(win);
 
-  header.addEventListener('mousedown', (e)=>{ 
-    e.preventDefault(); 
-    bringToFront(win); 
-    startDrag(win,e); 
-  });
+  header.addEventListener('mousedown', (e)=>{ e.preventDefault(); bringToFront(win); startDrag(win,e); });
   header.addEventListener('dblclick', ()=>toggleMax(win));
   win.addEventListener('mousedown', ()=>bringToFront(win));
 
   btnClose.onclick = ()=>win.remove();
 
-  /* --------------------------------------------------
-     UPDATED MINIMIZE FIX (ONLY CHANGE YOU REQUESTED)
-     -------------------------------------------------- */
+  /* minimize fix: if minimized from maximized, clear max flag so icons remain shown */
   btnMin.onclick = ()=>{
       if (win.dataset.max === '1') {
           win.dataset.max = '0';
-          iconsRoot.style.visibility = 'visible';
       }
       win.classList.add('hidden');
       createTaskbarEntry(win);
 
+      // re-check if any other windows are maximized; only hide icons if another is maximized
       const stillMax = Array.from(document.querySelectorAll('.window'))
           .some(w => w.dataset.max === '1');
       iconsRoot.style.visibility = stillMax ? 'hidden' : 'visible';
   };
-  /* -------------------------------------------------- */
 
   btnMax.onclick = ()=>toggleMax(win);
 
@@ -307,32 +389,22 @@ function toggleMax(win){
     }catch(e){}
     win.dataset.max='0';
   } else {
-    win.dataset.prevPos = JSON.stringify({ 
-      left: win.style.left, 
-      top: win.style.top, 
-      width: win.style.width, 
-      height: win.style.height, 
-      position: win.style.position||'absolute' 
-    });
+    win.dataset.prevPos = JSON.stringify({ left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height, position: win.style.position||'absolute' });
     win.style.position = 'fixed';
-    win.style.left = '0px'; 
-    win.style.top = '0px'; 
-    win.style.width = '100%'; 
-    win.style.height = `calc(100% - var(--taskbar-height))`;
+    win.style.left = '0px'; win.style.top = '0px'; win.style.width = '100%'; win.style.height = `calc(100% - var(--taskbar-height))`;
     win.dataset.max='1';
   }
-
-  const anyMax = Array.from(document.querySelectorAll('.window'))
-    .some(w=>w.dataset.max==='1');
-  iconsRoot.style.visibility = anyMax ? 'hidden' : 'visible';
+  /* NOTE: removed auto-hiding of icons on maximize — icons should NOT disappear when fullscreen */
+  // previous code hid icons; we intentionally do NOT change iconsRoot visibility here
 }
 
-/* create minimize entry */
+/* create minimize entry in dock */
 function createTaskbarEntry(win){
   const el = document.createElement('div'); 
   el.className='start-btn';
-  el.textContent = EMOJI[win.dataset.app] || prettify(win.dataset.app).charAt(0);
-  el.title = prettify(win.dataset.app);
+  const appId = win.dataset.app;
+  el.textContent = (APPS[appId] && APPS[appId].emoji) ? APPS[appId].emoji : prettify(appId).charAt(0);
+  el.title = prettify(appId);
   el.onclick = ()=>{ win.classList.remove('hidden'); windowsRoot.appendChild(win); bringToFront(win); el.remove(); };
   dock.appendChild(el);
 }
@@ -349,6 +421,7 @@ function openApp(id){
   else createWindow({title:prettify(id), app:id, content:`<div style="padding:12px">App ${id} - placeholder</div>`});
 }
 
+/* ---- Terminal ---- */
 function openTerminal(){
   const term=document.createElement('div'); term.className='terminal';
   const out=document.createElement('div'); out.className='terminal-output';
@@ -375,7 +448,7 @@ function openTerminal(){
     if(e.key==='Enter'){
       const cmd=input.value.trim();
       if(!cmd) return;
-      print(`<div style="color:#9bd3ff">$ ${cmd}</div>`);
+      print(`<div style="color:#9bd3ff">$ ${escapeHtml(cmd)}</div>`);
       handleCmd(cmd,print,out);
       input.value='';
     }
@@ -406,6 +479,7 @@ function handleCmd(cmd, print, outEl){
   else print('Unknown command: '+c);
 }
 
+/* ---- Explorer ---- */
 function openExplorer(){
   const filesHtml = Object.keys(state.files).map(k=>{
     const preview = String(state.files[k]||'').slice(0,120).replace(/</g,'&lt;');
@@ -414,293 +488,185 @@ function openExplorer(){
 
   const content = document.createElement('div'); 
   content.className='split';
-
-  const left = document.createElement('div'); 
-  left.style.flex='1'; left.className='explorer';
-  left.innerHTML = filesHtml;
-
-  const res = document.createElement('div'); 
-  res.className='resizer';
-
-  const right = document.createElement('div'); 
-  right.className='right-pane'; 
-  right.innerHTML = `<div style="font-weight:700;margin-bottom:8px">Details</div><div id="fileDetails" style="color:var(--muted)">Select a file</div>`;
-
-  content.appendChild(left); 
-  content.appendChild(res); 
-  content.appendChild(right);
-
+  const left = document.createElement('div'); left.style.flex='1'; left.className='explorer'; left.innerHTML = filesHtml;
+  const res = document.createElement('div'); res.className='resizer';
+  const right = document.createElement('div'); right.className='right-pane'; right.innerHTML = `<div style="font-weight:700;margin-bottom:8px">Details</div><div id="fileDetails" style="color:var(--muted)">Select a file</div>`;
+  content.appendChild(left); content.appendChild(res); content.appendChild(right);
   const win = createWindow({title:'File Explorer', app:'explorer', content:content});
-
-  win.querySelectorAll('.open').forEach((b,i)=>{
-    b.onclick = ()=>{
-      const fname = Object.keys(state.files)[i];
-      openNoteWindow(fname);
-    };
-  });
+  win.querySelectorAll('.open').forEach((b,i)=>{ b.onclick = ()=>{ const fname = Object.keys(state.files)[i]; openNoteWindow(fname); }; });
 }
 
+/* ---- Notes ---- */
 function openNoteWindow(fname){
   const content = document.createElement('div');
-  content.style.display='flex'; 
-  content.style.flexDirection='column'; 
-  content.style.height='100%';
-
+  content.style.display='flex'; content.style.flexDirection='column'; content.style.height='100%';
   const ta = document.createElement('textarea');
-  ta.style.flex='1'; 
-  ta.style.background='transparent'; 
-  ta.style.border='none'; 
-  ta.style.color='var(--muted)'; 
-  ta.style.outline='none'; 
-  ta.style.padding='12px';
+  ta.style.flex='1'; ta.style.background='transparent'; ta.style.border='none'; ta.style.color='var(--muted)'; ta.style.outline='none'; ta.style.padding='12px';
   ta.value = state.files[fname] || '';
-
-  const row = document.createElement('div'); 
-  row.style.textAlign='right'; 
-  row.style.marginTop='8px';
-
-  const saveBtn = document.createElement('button'); 
-  saveBtn.className='btn save'; 
-  saveBtn.textContent='Save';
-
-  row.appendChild(saveBtn);
-
-  content.appendChild(ta); 
-  content.appendChild(row);
-
+  const row = document.createElement('div'); row.style.textAlign='right'; row.style.marginTop='8px';
+  const saveBtn = document.createElement('button'); saveBtn.className='btn save'; saveBtn.textContent='Save';
+  row.appendChild(saveBtn); content.appendChild(ta); content.appendChild(row);
   const win = createWindow({title:fname, app:'notes', content:content});
-
-  saveBtn.onclick = ()=>{
-    state.files[fname] = ta.value;
-    saveState();
-    showToast('Saved '+fname);
-  };
+  saveBtn.onclick = ()=>{ state.files[fname] = ta.value; saveState(); showToast('Saved '+fname); };
 }
+function openNotes(){ const fname = 'note-'+Date.now()+'.txt'; state.files[fname] = state.files[fname] || ''; saveState(); openNoteWindow(fname); }
 
-function openNotes(){
-  const fname = 'note-'+Date.now()+'.txt';
-  state.files[fname] = state.files[fname] || '';
-  saveState(); 
-  openNoteWindow(fname);
-}
-
+/* ---- Settings ---- */
 function openSettings(){
-  const content = document.createElement('div'); 
-  content.className='settings';
-
-  content.innerHTML = `
-  <div class="row">
-    <div>Theme</div>
-    <div><button class="btn" id="themeToggle">Toggle UI Theme</button></div>
-  </div>
-  <div class="row">
-    <div>Reset</div>
-    <div><button id="resetBtn" class="btn">Reset</button></div>
-  </div>`;
-
+  const content = document.createElement('div'); content.className='settings';
+  content.innerHTML = `<div class="row"><div>Theme</div><div><button class="btn" id="themeToggle">Toggle UI Theme</button></div></div><div class="row"><div>Reset</div><div><button id="resetBtn" class="btn">Reset</button></div></div>`;
   const win = createWindow({title:'Settings', app:'settings', content:content});
-
-  win.querySelector('#themeToggle').onclick = ()=>{
-    document.body.classList.toggle('light'); 
-    showToast('Toggled theme');
-  };
-
-  win.querySelector('#resetBtn').onclick = ()=>{
-    if(confirm('Reset state?')){
-      localStorage.removeItem(STATE_KEY);
-      location.reload();
-    }
-  };
+  win.querySelector('#themeToggle').onclick = ()=>{ document.body.classList.toggle('light'); showToast('Toggled theme'); };
+  win.querySelector('#resetBtn').onclick = ()=>{ if(confirm('Reset state?')){ localStorage.removeItem(STATE_KEY); location.reload(); } };
 }
 
+/* ---- Calculator ---- */
 function openCalculator(){
-  const content = document.createElement('div'); 
-  content.style.display='flex'; 
-  content.style.flexDirection='column'; 
-  content.style.height='100%';
-
-  const inp = document.createElement('input');
-  inp.style.fontSize='20px'; 
-  inp.style.padding='10px'; 
-  inp.style.borderRadius='8px'; 
-  inp.style.border='none'; 
-  inp.style.background='rgba(255,255,255,0.02)'; 
-  inp.style.color='var(--muted)';
-  inp.placeholder='12*3+4';
-
-  const row = document.createElement('div'); 
-  row.style.textAlign='right'; 
-  row.style.marginTop='8px';
-
-  const btn = document.createElement('button'); 
-  btn.className='btn'; 
-  btn.textContent='Calculate';
-
-  row.appendChild(btn);
-
-  const out = document.createElement('div'); 
-  out.style.marginTop='12px'; 
-  out.style.color='var(--muted)';
-
-  content.appendChild(inp); 
-  content.appendChild(row); 
-  content.appendChild(out);
-
+  const content = document.createElement('div'); content.style.display='flex'; content.style.flexDirection='column'; content.style.height='100%';
+  const inp = document.createElement('input'); inp.style.fontSize='20px'; inp.style.padding='10px'; inp.style.borderRadius='8px'; inp.style.border='none'; inp.style.background='rgba(255,255,255,0.02)'; inp.style.color='var(--muted)'; inp.placeholder='12*3+4';
+  const row = document.createElement('div'); row.style.textAlign='right'; row.style.marginTop='8px';
+  const btn = document.createElement('button'); btn.className='btn'; btn.textContent='Calculate'; row.appendChild(btn);
+  const out = document.createElement('div'); out.style.marginTop='12px'; out.style.color='var(--muted)';
+  content.appendChild(inp); content.appendChild(row); content.appendChild(out);
   const win = createWindow({title:'Calculator', app:'calculator', content:content});
-
-  btn.onclick = ()=>{
-    try{ 
-      const res = Function('return ('+inp.value+')')(); 
-      out.textContent = String(res); 
-    } catch(e){ 
-      out.textContent = 'Error'; 
-    }
-  };
+  btn.onclick = ()=>{ try{ const res = Function('return ('+inp.value+')')(); out.textContent = String(res); } catch(e){ out.textContent = 'Error'; } };
 }
 
-/* Wallpaper picker (optional) */
+/* ---- Wallpaper picker ---- */
 function openWallpaperPicker(){
-  const content = document.createElement('div'); 
-  content.style.padding='8px';
-
-  const input = document.createElement('input');
-  input.placeholder='Paste image URL here (optional)';
-  input.style.width='100%';
-  input.style.marginBottom='8px';
-
-  const setBtn = document.createElement('button'); 
-  setBtn.className='btn'; 
-  setBtn.textContent='Set Wallpaper';
-
-  const resetBtn = document.createElement('button'); 
-  resetBtn.className='btn'; 
-  resetBtn.style.marginLeft='8px'; 
-  resetBtn.textContent='Reset to Default (gradient)';
-
-  content.appendChild(input); 
-  content.appendChild(setBtn); 
-  content.appendChild(resetBtn);
-
+  const content = document.createElement('div'); content.style.padding='8px';
+  const input = document.createElement('input'); input.placeholder='Paste image URL here (optional)'; input.style.width='100%'; input.style.marginBottom='8px';
+  const setBtn = document.createElement('button'); setBtn.className='btn'; setBtn.textContent='Set Wallpaper';
+  const resetBtn = document.createElement('button'); resetBtn.className='btn'; resetBtn.style.marginLeft='8px'; resetBtn.textContent='Reset to Default (gradient)';
+  content.appendChild(input); content.appendChild(setBtn); content.appendChild(resetBtn);
   const win = createWindow({title:'Wallpaper', app:'wallpaper', content:content});
-
-  setBtn.onclick = ()=>{
-    const url = input.value.trim();
-    if(url){
-      state.wallpaper = url; 
-      saveState(); 
-      applyWallpaper(); 
-      showToast('Wallpaper set');
-    }
-  };
-
-  resetBtn.onclick = ()=>{
-    state.wallpaper = '';
-    saveState(); 
-    applyWallpaper(); 
-    showToast('Wallpaper reset');
-  };
+  setBtn.onclick = ()=>{ const url = input.value.trim(); if(url){ state.wallpaper = url; saveState(); applyWallpaper(); showToast('Wallpaper set'); } };
+  resetBtn.onclick = ()=>{ state.wallpaper = ''; saveState(); applyWallpaper(); showToast('Wallpaper reset'); };
 }
-
-function applyWallpaper(){
-  if(state.wallpaper && state.wallpaper.length)
-    document.getElementById('desktop').style.backgroundImage = `url('${state.wallpaper}')`;
-  else 
-    document.getElementById('desktop').style.backgroundImage = '';
-}
+function applyWallpaper(){ if(state.wallpaper && state.wallpaper.length) document.getElementById('desktop').style.backgroundImage = `url('${state.wallpaper}')`; else document.getElementById('desktop').style.backgroundImage = ''; }
 applyWallpaper();
 
-/* Store app */
+/* ---- Store app ---- */
 const STORE_APPS = [
   {id:'notes', name:'Notes', emoji:'📝', desc:'Simple notes editor'},
   {id:'calculator', name:'Calculator', emoji:'🧮', desc:'Basic calculator'},
   {id:'wallpaper', name:'Wallpapers', emoji:'🖼️', desc:'Set a desktop wallpaper'}
 ];
-
 function openStore(){
-  const content = document.createElement('div'); 
-  content.style.display='flex'; 
-  content.style.flexDirection='column'; 
-  content.style.gap='8px';
-
-  const grid = document.createElement('div'); 
-  grid.style.display='grid'; 
-  grid.style.gridTemplateColumns='repeat(2,1fr)'; 
-  grid.style.gap='8px';
-
+  const content = document.createElement('div'); content.style.display='flex'; content.style.flexDirection='column'; content.style.gap='8px';
+  const grid = document.createElement('div'); grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(2,1fr)'; grid.style.gap='8px';
   STORE_APPS.forEach(a=>{
-    const card = document.createElement('div');
-    card.style.padding='10px';
-    card.style.borderRadius='8px';
-    card.style.background='rgba(255,255,255,0.02)';
-    card.innerHTML = `
-      <div style="font-size:22px">${a.emoji}</div>
-      <div style="font-weight:700">${a.name}</div>
-      <div style="color:var(--muted);font-size:13px">${a.desc}</div>`;
-
-    const install = document.createElement('button'); 
-    install.className='btn'; 
-    install.textContent = 'Install'; 
-    install.style.marginTop='8px';
-
-    install.onclick = ()=>{
-      if(!state.pinned.includes(a.id)) 
-          state.pinned.push(a.id);
-      state.apps[a.id] = true; 
-      saveState(); 
-      renderStartMenu(); 
-      showToast(a.name+' installed and pinned'); 
-    };
-
-    card.appendChild(install);
-    grid.appendChild(card);
+    const card = document.createElement('div'); card.style.padding='10px'; card.style.borderRadius='8px'; card.style.background='rgba(255,255,255,0.02)';
+    card.innerHTML = `<div style="font-size:22px">${a.emoji}</div><div style="font-weight:700">${a.name}</div><div style="color:var(--muted);font-size:13px">${a.desc}</div>`;
+    const install = document.createElement('button'); install.className='btn'; install.textContent = 'Install'; install.style.marginTop='8px';
+    install.onclick = ()=>{ if(!state.pinned.includes(a.id)) state.pinned.push(a.id); state.apps[a.id] = true; saveState(); renderStartMenu(); showToast(a.name+' installed and pinned'); };
+    card.appendChild(install); grid.appendChild(card);
   });
-
   content.appendChild(grid);
-
   const win = createWindow({title:'Store', app:'store', content:content});
 }
 
 /* ---------------- utilities ---------------- */
-function showToast(msg){
-  const t=document.createElement('div'); 
-  t.className='toast'; 
-  t.textContent=msg; 
-  document.body.appendChild(t); 
-  setTimeout(()=>t.remove(),1500);
-}
+function showToast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),1500); }
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* keyboard shortcuts */
-window.addEventListener('keydown', (e)=>{
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='t'){
-    e.preventDefault(); 
-    openTerminal(); 
-  }
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='e'){
-    e.preventDefault(); 
-    openExplorer(); 
-  }
-});
+window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='t'){ e.preventDefault(); openTerminal(); } if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='e'){ e.preventDefault(); openExplorer(); } });
 
 /* double-click desktop → new note */
-document.getElementById('desktop').addEventListener('dblclick',(e)=>{
-  if(e.target.id === 'desktop') openNotes();
+document.getElementById('desktop').addEventListener('dblclick',(e)=>{ if(e.target.id === 'desktop') openNotes(); });
+
+/* disable dragging of images */
+document.addEventListener('mousedown',(e)=>{ const tag = e.target.tagName.toLowerCase(); if(tag==='img') e.preventDefault(); });
+
+/* ---------------- Context menu implementation ----------------
+   showContextMenu(x,y, meta) where meta: { type: 'desktop'|'icon'|'dock', index?, appId? }
+*/
+function removeContextMenus(){ document.querySelectorAll('.ctx-menu').forEach(m=>m.remove()); }
+document.addEventListener('click', ()=>removeContextMenus());
+document.addEventListener('contextmenu', (ev)=>{ // global: show desktop menu when right-clicking background
+  const isOnIcon = ev.target.closest('.icon');
+  if(isOnIcon) return; // let icon handler manage it
+  ev.preventDefault();
+  showContextMenu(ev.clientX, ev.clientY, {type:'desktop'});
 });
 
-/* disable dragging */
-document.addEventListener('mousedown',(e)=>{
-  const tag = e.target.tagName.toLowerCase(); 
-  if(tag==='img' || e.target.classList.contains('icon')) 
-      e.preventDefault();
-});
+function showContextMenu(x,y, meta){
+  removeContextMenus();
+  const menu = document.createElement('div'); menu.className='ctx-menu';
+  // items array: {emoji, label, fn, showIf}
+  const items = [];
+  // For desktop background: show Paste (if clipboard), New Note
+  if(meta.type === 'desktop'){
+    items.push({e:'📥', t:'Paste', fn: ()=>{ if(internalClipboard){ pasteIconAt(internalClipboard, x, y); } }, show: ()=>!!internalClipboard});
+    items.push({e:'📝', t:'New Note', fn: ()=>{ openNotes(); }});
+  }
+  // For dock/app icon: generic open
+  if(meta.type === 'dock'){
+    items.push({e:'🔓', t:'Open', fn: ()=>{ openApp(meta.appId); }});
+  }
+  // For icon: copy, cut, paste, delete, pin/unpin
+  if(meta.type === 'icon'){
+    items.push({e:'📋', t:'Copy', fn: ()=>{ internalClipboard = meta.appId; internalCut = false; showToast('Copied'); }});
+    items.push({e:'✂️', t:'Cut', fn: ()=>{ internalClipboard = meta.appId; internalCut = true; showToast('Cut'); }});
+    items.push({e:'📥', t:'Paste', fn: ()=>{ if(internalClipboard){ pasteIconAt(internalClipboard, x, y); if(internalCut){ // remove original icon if cut
+        removeIconByIndex(meta.index); internalCut = false; internalClipboard = null;
+      } } }, show: ()=>!!internalClipboard});
+    items.push({e:'🗑️', t:'Delete', fn: ()=>{ removeIconByIndex(meta.index); }, show: ()=>true});
+    const pinned = state.pinned || [];
+    const pinnedAlready = pinned.includes(meta.appId);
+    items.push({e:pinnedAlready ? '📍' : '📌', t: pinnedAlready ? 'Unpin' : 'Pin', fn: ()=>{ if(pinnedAlready){ state.pinned = pinned.filter(id=>id!==meta.appId); showToast('Unpinned'); } else { state.pinned.push(meta.appId); showToast('Pinned'); } saveState(); renderStartMenu(); }, show: ()=>true});
+  }
 
-/* final setup */
-state.files['welcome.txt'] = state.files['welcome.txt'] ||
-   'Welcome to SkyOS — double-click icons to open apps. Use Sky to open Start.';
+  // Build DOM for visible items
+  items.filter(it => it.show === undefined ? true : it.show()).forEach(it=>{
+    const row = document.createElement('div'); row.className='ctx-item';
+    row.innerHTML = `<div class="ctx-emoji">${it.e}</div><div>${it.t}</div>`;
+    row.addEventListener('click', (ev)=>{ ev.stopPropagation(); try{ it.fn(); } catch(e){ console.error(e); } removeContextMenus(); });
+    menu.appendChild(row);
+  });
+
+  document.body.appendChild(menu);
+  // position with viewport clamping
+  const rect = menu.getBoundingClientRect();
+  let left = x; let top = y;
+  if(left + rect.width > window.innerWidth) left = window.innerWidth - rect.width - 8;
+  if(top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 8;
+  menu.style.left = left + 'px'; menu.style.top = top + 'px';
+}
+
+/* paste icon at coords */
+function pasteIconAt(appId, clientX, clientY){
+  // convert client coords to desktop local coords
+  const desktopRect = document.getElementById('desktop').getBoundingClientRect();
+  const x = Math.max(8, Math.min(desktopRect.width - 80, clientX - desktopRect.left));
+  const y = Math.max(8, Math.min(desktopRect.height - 40, clientY - desktopRect.top));
+  desktopIcons.push({id:appId, x: Math.round(x), y: Math.round(y)});
+  renderIcons();
+  saveState();
+}
+
+/* remove icon by index */
+function removeIconByIndex(index){
+  if(index>=0 && index < desktopIcons.length){
+    const removed = desktopIcons.splice(index,1);
+    renderIcons();
+    saveState();
+    showToast('Deleted ' + (removed[0] && (APPS[removed[0].id] ? APPS[removed[0].id].name : removed[0].id)));
+  }
+}
+
+/* ---------------- final setup & init ---------------- */
+state.files['welcome.txt'] = state.files['welcome.txt'] || 'Welcome to SkyOS — double-click icons to open apps. Use Sky to open Start.';
 saveState();
 renderStartMenu();
 renderIcons();
 renderDock();
 
+/* prevent default context menu on icons (we handle right click) */
+document.addEventListener('contextmenu', (ev)=>{
+  if(ev.target.closest('.icon')) ev.preventDefault();
+});
 </script>
 </body>
 </html>
